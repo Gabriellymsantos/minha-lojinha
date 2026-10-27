@@ -1,0 +1,169 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Minha Lojinha</title>
+<link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;600;700&family=Pacifico&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+:root{--bg:#fff7fa;--card:#fff;--ink:#4a3540;--mut:#9a7f8c;--p:#f7a8c4;--p2:#fde1ec;--pd:#e0709a;--ok:#7bc9a6;--ln:#f6d5e2;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#2a1d25;--card:#38262f;--ink:#fbe9f1;--mut:#c9a8b8;--p2:#4d3341;--ln:#5a3d4c}}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 Quicksand,system-ui,sans-serif}
+button,input,select,textarea{font:inherit;color:inherit}
+.wrap{max-width:980px;margin:0 auto;padding:0 14px 90px}
+.cover{height:170px;background:linear-gradient(135deg,#fbc2d8,#fde1ec 60%,#ffeef5) center/cover;border-radius:0 0 28px 28px}
+.prof{display:flex;gap:14px;align-items:flex-end;margin:-46px 10px 0;flex-wrap:wrap}
+.av{width:92px;height:92px;border-radius:50%;border:4px solid var(--bg);background:var(--p2) center/cover;display:grid;place-items:center;font-size:38px;flex:none}
+h1{font-family:Pacifico,cursive;font-weight:400;color:var(--pd);margin:0;font-size:1.7rem}
+.mut{color:var(--mut);font-size:.9rem}
+.nav{display:flex;gap:8px;margin:16px 0;flex-wrap:wrap}
+.btn{border:0;border-radius:999px;padding:10px 18px;background:var(--p);color:#5a2740;font-weight:700;cursor:pointer;transition:transform .15s,background .2s}
+.btn:hover{transform:translateY(-1px);background:#f592b6}.btn.o{background:var(--p2);color:var(--ink)}.btn.on{background:var(--pd);color:#fff}.btn.sm{padding:6px 12px;font-size:.85rem}.btn:disabled{opacity:.5;cursor:not-allowed}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:14px}
+.card{background:var(--card);border:1px solid var(--ln);border-radius:22px;overflow:hidden;box-shadow:0 6px 18px #f7a8c41f;animation:up .35s ease both}
+@keyframes up{from{opacity:0;transform:translateY(8px)}}
+.ph{aspect-ratio:1;background:var(--p2) center/cover;display:grid;place-items:center;font-size:44px;cursor:pointer}
+.ci{padding:12px}.ci h3{margin:0;font-size:1.05rem}.price{color:var(--pd);font-weight:700;font-size:1.15rem}
+.tag{display:inline-block;background:var(--p2);border-radius:999px;padding:2px 10px;font-size:.78rem}.tag.no{background:#ffd6d6;color:#8a2a2a}
+input,select,textarea{width:100%;border:1.5px solid var(--ln);background:var(--card);border-radius:14px;padding:9px 12px;margin:4px 0}
+.q{display:flex;gap:6px;align-items:center;margin-top:8px}.q input{width:64px;text-align:center}
+.fab{position:fixed;right:16px;bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:5}
+#modal{position:fixed;inset:0;background:#4a354066;display:none;align-items:flex-end;justify-content:center;z-index:10}
+#modal.on{display:flex}.sheet{background:var(--bg);width:min(560px,100%);max-height:92vh;overflow:auto;border-radius:26px 26px 0 0;padding:18px;animation:up .25s ease}
+.row{display:flex;justify-content:space-between;gap:8px;align-items:center;padding:6px 0;border-bottom:1px dashed var(--ln)}
+.box{background:var(--card);border:1px solid var(--ln);border-radius:18px;padding:12px;margin:10px 0}
+.bub{max-width:80%;padding:8px 12px;border-radius:16px;margin:4px 0;background:var(--p2)}.bub.me{margin-left:auto;background:var(--p)}
+#ml{max-height:46vh;overflow:auto}.dot{background:var(--pd);color:#fff;border-radius:999px;padding:0 7px;font-size:.75rem;margin-left:4px}
+#toast{position:fixed;top:calc(10px + env(safe-area-inset-top,0px));left:50%;transform:translateX(-50%);background:var(--pd);color:#fff;padding:10px 18px;border-radius:999px;z-index:20;display:none}
+</style></head><body>
+<div id="toast"></div><div id="app"></div><div id="modal"></div>
+<script>
+const E=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const R=n=>'R$ '+Number(n||0).toFixed(2).replace('.',',');
+const $=s=>document.querySelector(s);
+const ST=['recebido','em preparação','pronto','enviado','concluído'];
+const S={prof:{},prods:[],stock:{},orders:[],views:[],threads:[],cart:{},tab:'loja',admin:false,uid:'',name:'',chat:null};
+let db,unChat=null,first={o:true,t:true};
+function toast(t){const e=$('#toast');e.textContent=t;e.style.display='block';setTimeout(()=>e.style.display='none',3500)}
+function modal(h){const m=$('#modal');m.innerHTML=h?'<div class="sheet">'+h+'</div>':'';m.classList.toggle('on',!!h)}
+$('#modal').addEventListener('click',e=>{if(e.target.id==='modal')modal('')});
+
+async function init(){
+  const user=await claude.use('user');db=await claude.use('db');
+  if(!db){$('#app').innerHTML='<div class="wrap"><div class="box" style="margin-top:40px">🌸 Entre na sua conta Claude para abrir a loja.</div></div>';return}
+  S.admin=user?user.isOwner()||user.canEdit():false;S.uid=user?await user.id():'anon';
+  db.doc('shop/profile').onSnapshot(s=>{S.prof=s.data()||{};draw()});
+  db.collection('products').onSnapshot(s=>{S.prods=s.docs.map(d=>({id:d.id,...d.data()}));draw()});
+  db.collection('stock').onSnapshot(s=>{S.stock={};s.docs.forEach(d=>S.stock[d.id]=d.data().qty||0);draw()});
+  db.collection('views').add({t:Date.now(),p:null,u:S.uid}).catch(()=>{});
+  if(S.admin){
+    db.collection('orders').orderBy('t','desc').onSnapshot(s=>{if(!first.o)s.docChanges().forEach(c=>c.type==='added'&&toast('🛍️ Novo pedido recebido!'));first.o=false;S.orders=s.docs.map(d=>({id:d.id,...d.data()}));draw()});
+    db.collection('views').onSnapshot(s=>{S.views=s.docs.map(d=>d.data())});
+    db.collection('chats').orderBy('t','desc').onSnapshot(s=>{if(!first.t)s.docChanges().forEach(c=>c.doc.data().unread&&toast('💬 Nova mensagem de '+E(c.doc.data().name)));first.t=false;S.threads=s.docs.map(d=>({id:d.id,...d.data()}));draw()});
+  }
+  draw();
+}
+const cartN=()=>Object.values(S.cart).reduce((a,b)=>a+b,0);
+const cartT=()=>S.prods.reduce((a,p)=>a+(S.cart[p.id]||0)*p.price,0);
+
+function draw(){
+  const P=S.prof,un=S.threads.filter(t=>t.unread).length,nw=S.orders.filter(o=>o.status==='recebido').length;
+  const tabs=[['loja','🌷 Loja'],['chat','💬 Mensagens'+(S.admin&&un?`<span class=dot>${un}</span>`:'')]];
+  if(S.admin)tabs.push(['admin','🔐 Painel'+(nw?`<span class=dot>${nw}</span>`:'')]);
+  let body=S.tab==='admin'&&S.admin?adminV():S.tab==='chat'?chatV():shopV();
+  $('#app').innerHTML=`<div class=wrap><div class=cover style="${P.cover?`background-image:url(${E(P.cover)})`:''}"></div>
+  <div class=prof><div class=av style="${P.logo?`background-image:url(${E(P.logo)})`:''}">${P.logo?'':'🌸'}</div>
+  <div style="flex:1;min-width:200px;padding-bottom:6px"><h1>${E(P.name||'Minha Lojinha')}</h1><div class=mut>${E(P.desc||'Produtos feitos com carinho 💕')}</div>
+  <div class=mut>${P.contact?'📞 '+E(P.contact):''} ${P.hours?'· 🕒 '+E(P.hours):''}</div></div></div>
+  <div class=nav>${tabs.map(t=>`<button class="btn ${S.tab===t[0]?'on':'o'}" data-act=tab data-v=${t[0]}>${t[1]}</button>`).join('')}</div>${body}</div>
+  ${S.tab==='loja'&&cartN()?`<button class="btn fab" data-act=cart>🛒 Carrinho (${cartN()}) · ${R(cartT())}</button>`:''}`;
+  if(S.tab==='chat'&&!S.chatInit){S.chatInit=1;if(!S.admin)openChat(S.uid,S.name)}
+}
+function shopV(){
+  if(!S.prods.length)return '<div class=box>Ainda não há produtos por aqui. 🌸</div>';
+  return '<div class=grid>'+S.prods.map(p=>{const q=S.stock[p.id]||0,c=S.cart[p.id]||0;
+  return `<div class=card><div class=ph data-act=view data-id=${p.id} style="${p.img?`background-image:url(${E(p.img)})`:''}">${p.img?'':'🎀'}</div>
+  <div class=ci><h3>${E(p.name)}</h3><div class=mut>${E(p.desc)}</div><div class=price>${R(p.price)}</div>
+  <span class="tag ${q?'':'no'}">${q?q+' em estoque':'Esgotado'}</span>
+  ${q?`<div class=q><input type=number min=1 max=${q} value=1 id=n${p.id}><button class="btn sm" data-act=add data-id=${p.id}>Adicionar</button></div>`:''}</div></div>`}).join('')+'</div>'
+}
+function cartM(){
+  const it=S.prods.filter(p=>S.cart[p.id]);
+  if(!it.length){modal('<p>Seu carrinho está vazio 🌸</p>');return}
+  modal(`<h2>🛒 Seu pedido</h2>${it.map(p=>`<div class=row><span>${S.cart[p.id]}× ${E(p.name)}</span><span>${R(S.cart[p.id]*p.price)} <button class="btn sm o" data-act=rm data-id=${p.id}>✕</button></span></div>`).join('')}
+  <h3>Dados do pedido</h3><input id=cn placeholder="Seu nome" value="${E(S.name)}"><input id=cp placeholder="WhatsApp / telefone">
+  <select id=cm><option value=retirada>Retirar no local</option><option value=entrega>Receber por entrega</option></select>
+  <input id=ca placeholder="Endereço completo (se entrega)" style="display:none">
+  <select id=cy>${(S.prof.pays||'Pix,Cartão,Dinheiro').split(',').map(x=>`<option>${E(x.trim())}</option>`).join('')}</select>
+  <div class=row><span>Produtos</span><b>${R(cartT())}</b></div><div class=row id=fr style="display:none"><span>Frete</span><b>${R(S.prof.frete)}</b></div>
+  <div class=row><span>Total</span><b class=price id=tt>${R(cartT())}</b></div>
+  ${S.prof.pix?`<p class=mut>Chave Pix: ${E(S.prof.pix)} — o pedido só é marcado como pago após a loja confirmar.</p>`:''}
+  <button class=btn data-act=buy style="width:100%">Confirmar pedido 💕</button>`);
+  $('#cm').onchange=e=>{const d=e.target.value==='entrega';$('#ca').style.display=d?'':'none';$('#fr').style.display=d?'':'none';$('#tt').textContent=R(cartT()+(d?+S.prof.frete||0:0))}
+}
+async function buy(){
+  const nome=$('#cn').value.trim(),tel=$('#cp').value.trim(),mode=$('#cm').value,end=$('#ca').value.trim();
+  if(!nome||!tel||(mode==='entrega'&&!end))return toast('Preencha nome, telefone e endereço 🌸');
+  S.name=nome;const b=$('[data-act=buy]');b.disabled=true;const done=[],items=[];
+  try{
+    for(const p of S.prods.filter(p=>S.cart[p.id])){
+      const n=S.cart[p.id],ref=db.doc('stock/'+p.id);
+      const lk=await db.doc('locks/'+p.id).acquire({holder:S.uid+Date.now(),ttlMs:5000});
+      if(!lk.acquired)throw new Error('Alguém está comprando "'+p.name+'" agora. Tente de novo.');
+      const q=(await ref.get()).data()?.qty||0;
+      if(q<n)throw new Error('Só restam '+q+' de "'+p.name+'".');
+      await ref.update({qty:q-n});done.push([ref,q]);items.push({id:p.id,name:p.name,n,price:p.price});
+    }
+    const frete=mode==='entrega'?+S.prof.frete||0:0,total=cartT()+frete;
+    await db.collection('orders').add({t:Date.now(),nome,tel,mode,end,pay:$('#cy').value,items,frete,total,status:'recebido',paid:false,u:S.uid});
+    S.cart={};
+    modal(`<h2>🎉 Pedido confirmado!</h2><p>Obrigada, ${E(nome)}! Resumo:</p>${items.map(i=>`<div class=row><span>${i.n}× ${E(i.name)}</span><span>${R(i.n*i.price)}</span></div>`).join('')}<div class=row><span>Frete</span><span>${R(frete)}</span></div><div class=row><b>Total</b><b class=price>${R(total)}</b></div><p class=mut>${mode==='entrega'?'Entrega em: '+E(end):'Retirada no local'} · Pagamento: ${E($('#cy')?.value||'')}. A loja confirmará o pagamento e avisará você.</p>`);
+  }catch(e){for(const [r,q] of done)await r.update({qty:q}).catch(()=>{});toast(e.message||'Não foi possível concluir');b.disabled=false}
+}
+function chatV(){return `<div class=box id=chatbox>${S.admin?'<b>Conversas</b>'+(S.threads.map(t=>`<div class=row><span>${t.unread?'🔴 ':''}${E(t.name||'Cliente')} <span class=mut>${E(t.last||'')}</span></span><button class="btn sm o" data-act=thread data-id=${t.id} data-n="${E(t.name)}">Abrir</button></div>`).join('')||'<p class=mut>Nenhuma conversa ainda.</p>')+'<div id=cp2></div>':'<div id=cp2></div>'}</div>`}
+function openChat(uid,name){
+  S.chat=uid;if(unChat)unChat();
+  const box=$('#cp2');if(!box){setTimeout(()=>openChat(uid,name),50);return}
+  box.innerHTML=`<hr>${S.admin?'':`<input id=chn placeholder="Seu nome" value="${E(S.name)}">`}<div id=ml></div><input id=mi placeholder="Escreva sua mensagem…"><button class=btn data-act=send style="width:100%">Enviar 💌</button>`;
+  unChat=db.collection('chats/'+uid+'/msgs').orderBy('t').onSnapshot(s=>{const m=$('#ml');if(!m)return;m.innerHTML=s.docs.map(d=>{const x=d.data(),me=S.admin?x.from==='s':x.from==='c';return `<div class="bub ${me?'me':''}">${E(x.text)}</div>`}).join('')||'<p class=mut>Pergunte sobre produtos, entrega e mais 🌸</p>';m.scrollTop=1e9});
+  if(S.admin)db.doc('chats/'+uid).update({unread:false}).catch(()=>{});
+}
+async function send(){
+  const t=$('#mi').value.trim();if(!t)return;if(!S.admin)S.name=($('#chn').value||'Cliente').trim();
+  await db.collection('chats/'+S.chat+'/msgs').add({t:Date.now(),from:S.admin?'s':'c',text:t});
+  const th=S.threads.find(x=>x.id===S.chat);
+  await db.doc('chats/'+S.chat).set({name:S.admin?(th?.name||'Cliente'):S.name,last:t.slice(0,40),t:Date.now(),unread:!S.admin});$('#mi').value=''
+}
+function adminV(){
+  const vis=S.views.filter(v=>!v.p).length,pv={},sold={};S.views.forEach(v=>v.p&&(pv[v.p]=(pv[v.p]||0)+1));
+  S.orders.forEach(o=>o.items.forEach(i=>sold[i.id]=(sold[i.id]||0)+i.n));
+  const nm=id=>S.prods.find(p=>p.id===id)?.name||'(removido)',top=o=>Object.entries(o).sort((a,b)=>b[1]-a[1]).slice(0,5).map(x=>`${E(nm(x[0]))}: ${x[1]}`).join('<br>')||'—';
+  return `<div class=box><b>📈 Estatísticas</b><p>Acessos à loja: <b>${vis}</b></p><div class=grid><div><b>Mais vistos</b><br>${top(pv)}</div><div><b>Mais vendidos</b><br>${top(sold)}</div></div></div>
+  <div class=box><b>📱 QR Code da loja</b><div id=qr style="margin:10px 0"></div><div class=mut style="word-break:break-all">${E(location.href.split('#')[0])}</div></div>
+  <div class=box><b>🎀 Perfil e pagamento</b><div class=row><button class="btn sm" data-act=prof>Editar perfil da loja</button><button class="btn sm" data-act=edit data-id="">+ Novo produto</button></div></div>
+  <div class=box><b>🧸 Produtos</b>${S.prods.map(p=>`<div class=row><span>${E(p.name)} · ${R(p.price)} · estoque ${S.stock[p.id]||0}</span><span><button class="btn sm o" data-act=edit data-id=${p.id}>Editar</button> <button class="btn sm o" data-act=del data-id=${p.id}>🗑</button></span></div>`).join('')||'<p class=mut>Cadastre seu primeiro produto.</p>'}</div>
+  <div class=box><b>📦 Pedidos</b>${S.orders.map(o=>`<div class=box><b>${E(o.nome)}</b> · ${E(o.tel)} <span class=tag>${E(o.mode)}</span><br>${o.items.map(i=>`${i.n}× ${E(i.name)}`).join(', ')}<br>${o.mode==='entrega'?'📍 '+E(o.end)+'<br>':''}Total <b>${R(o.total)}</b> · ${E(o.pay)} · ${o.paid?'✅ pago':'⏳ aguardando pagamento'}<br>
+  <select data-act=status data-id=${o.id}>${ST.map(s=>`<option ${s===o.status?'selected':''}>${s}</option>`).join('')}</select>${o.paid?'':`<button class="btn sm" data-act=paid data-id=${o.id}>Confirmar pagamento</button>`}</div>`).join('')||'<p class=mut>Nenhum pedido ainda.</p>'}</div>`
+}
+function editM(id){
+  const p=S.prods.find(x=>x.id===id)||{};S.eimg=p.img||'';
+  modal(`<h2>${id?'Editar':'Novo'} produto</h2><input id=en placeholder="Nome" value="${E(p.name)}"><textarea id=ed placeholder="Descrição">${E(p.desc)}</textarea><input id=ep type=number step=0.01 placeholder="Preço" value="${p.price??''}"><input id=eq type=number placeholder="Estoque" value="${id?S.stock[id]||0:''}"><input id=ef type=file accept="image/*"><button class=btn data-act=saveP data-id="${id}" style="width:100%">Salvar</button>`)
+}
+function profM(){const P=S.prof;modal(`<h2>Perfil da loja</h2><input id=pn placeholder="Nome da loja" value="${E(P.name)}"><textarea id=pd placeholder="Descrição">${E(P.desc)}</textarea><input id=pc placeholder="Contato" value="${E(P.contact)}"><input id=ph placeholder="Horário de atendimento" value="${E(P.hours)}"><input id=pf type=number step=0.01 placeholder="Frete (R$)" value="${P.frete??''}"><input id=px placeholder="Chave Pix" value="${E(P.pix)}"><input id=py placeholder="Pagamentos (separe por vírgula)" value="${E(P.pays||'Pix,Cartão,Dinheiro')}"><label class=mut>Logo</label><input id=pl type=file accept="image/*"><label class=mut>Capa</label><input id=pv type=file accept="image/*"><button class=btn data-act=saveF style="width:100%">Salvar</button>`)}
+async function up(inp){const f=inp.files[0];if(!f)return null;const a=await claude.use('assets');if(!a){toast('Upload indisponível');return null}return (await a.upload(f)).url}
+const A={
+ tab:e=>{S.tab=e.dataset.v;S.chatInit=0;draw();if(S.tab==='admin')setTimeout(()=>{const q=$('#qr');q&&new QRCode(q,{text:location.href.split('#')[0],width:160,height:160})},50)},
+ cart:cartM,rm:e=>{delete S.cart[e.dataset.id];draw();cartM()},
+ add:e=>{const id=e.dataset.id,max=S.stock[id]||0,n=Math.max(1,parseInt($('#n'+id).value)||1);S.cart[id]=Math.min(max,(S.cart[id]||0)+n);toast('Adicionado 🛒');draw()},
+ view:e=>{const p=S.prods.find(x=>x.id===e.dataset.id);db.collection('views').add({t:Date.now(),p:p.id,u:S.uid}).catch(()=>{});modal(`<h2>${E(p.name)}</h2>${p.img?`<img src="${E(p.img)}" style="width:100%;border-radius:18px">`:''}<p>${E(p.desc)}</p><b class=price>${R(p.price)}</b>`)},
+ buy,send,thread:e=>openChat(e.dataset.id,e.dataset.n),edit:e=>editM(e.dataset.id),prof:profM,
+ del:async e=>{if(confirm('Excluir produto?')){await db.doc('products/'+e.dataset.id).delete();await db.doc('stock/'+e.dataset.id).delete()}},
+ paid:e=>db.doc('orders/'+e.dataset.id).update({paid:true}),
+ saveP:async e=>{const id=e.dataset.id,d=db.collection('products').doc(id||undefined),img=await up($('#ef'))||S.eimg;
+  await d.set({name:$('#en').value,desc:$('#ed').value,price:+$('#ep').value||0,img});await db.doc('stock/'+d.id).set({qty:Math.max(0,parseInt($('#eq').value)||0)});modal('');toast('Produto salvo 🌸')},
+ saveF:async()=>{const P=S.prof,logo=await up($('#pl'))||P.logo||'',cover=await up($('#pv'))||P.cover||'';
+  await db.doc('shop/profile').set({name:$('#pn').value,desc:$('#pd').value,contact:$('#pc').value,hours:$('#ph').value,frete:+$('#pf').value||0,pix:$('#px').value,pays:$('#py').value,logo,cover});modal('');toast('Perfil salvo 🌸')}
+};
+document.addEventListener('click',e=>{const t=e.target.closest('[data-act]');if(t&&t.tagName!=='SELECT'&&A[t.dataset.act])A[t.dataset.act](t)});
+document.addEventListener('change',e=>{if(e.target.dataset.act==='status')db.doc('orders/'+e.target.dataset.id).update({status:e.target.value})});
+init();
+</script></body></html>
